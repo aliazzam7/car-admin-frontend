@@ -1,28 +1,65 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-//import './OrdersList.css'; // <-- Make sure this CSS file includes the necessary styles
+import { 
+  collection, 
+  getDocs, 
+  deleteDoc, 
+  doc, 
+  onSnapshot, 
+  query, 
+  orderBy,
+  where 
+} from 'firebase/firestore';
+import { db } from '../firebase.js';
+// import { db } from '../firebase/config'; // Adjust path according to your Firebase config file
+//import './OrdersList.css';
 
 const OrdersList = () => {
   const [orders, setOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const mockOrders = [
-      {
-        id: '1', userName: 'Ahmed Mohamed', userEmail: 'ahmed@example.com', carName: 'Toyota Camry 2023', startDate: '2024-12-15', endDate: '2024-12-20', totalDays: 5, totalPrice: 250, status: 'confirmed', createdAt: '2024-12-10'
-      },
-      {
-        id: '2', userName: 'Fatima Ali', userEmail: 'fatima@example.com', carName: 'Hyundai Elantra 2022', startDate: '2024-12-18', endDate: '2024-12-25', totalDays: 7, totalPrice: 315, status: 'pending', createdAt: '2024-12-12'
-      },
-      {
-        id: '3', userName: 'Khalid Salem', userEmail: 'khalid@example.com', carName: 'Nissan Altima 2023', startDate: '2024-12-22', endDate: '2024-12-28', totalDays: 6, totalPrice: 360, status: 'delivered', createdAt: '2024-12-14'
-      },
-      {
-        id: '4', userName: 'Mariam Hassan', userEmail: 'mariam@example.com', carName: 'Kia Cerato 2022', startDate: '2024-12-20', endDate: '2024-12-24', totalDays: 4, totalPrice: 180, status: 'cancelled', createdAt: '2024-12-11'
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Create a query to get orders ordered by creation date (newest first)
+        const ordersQuery = query(
+          collection(db, 'orders'),
+          orderBy('createdAt', 'desc')
+        );
+
+        // Set up real-time listener
+        const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+          const ordersData = [];
+          snapshot.forEach((doc) => {
+            ordersData.push({
+              id: doc.id,
+              ...doc.data()
+            });
+          });
+          setOrders(ordersData);
+          setLoading(false);
+        }, (error) => {
+          console.error('Error fetching orders:', error);
+          setError('Failed to load orders. Please try again.');
+          setLoading(false);
+        });
+
+        // Cleanup function to unsubscribe from the listener
+        return () => unsubscribe();
+      } catch (error) {
+        console.error('Error setting up orders listener:', error);
+        setError('Failed to load orders. Please try again.');
+        setLoading(false);
       }
-    ];
-    setOrders(mockOrders);
+    };
+
+    fetchOrders();
   }, []);
 
   const getStatusBadgeClass = (status) => {
@@ -46,18 +83,50 @@ const OrdersList = () => {
   };
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.carName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.userEmail.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = order.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.carName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.userEmail?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || order.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
-  const handleDeleteOrder = (orderId) => {
+  const handleDeleteOrder = async (orderId) => {
     if (window.confirm('Are you sure you want to delete this order?')) {
-      setOrders(orders.filter(order => order.id !== orderId));
+      try {
+        await deleteDoc(doc(db, 'orders', orderId));
+        // The onSnapshot listener will automatically update the orders state
+        console.log('Order deleted successfully');
+      } catch (error) {
+        console.error('Error deleting order:', error);
+        alert('Failed to delete order. Please try again.');
+      }
     }
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="page-container">
+        <div className="loading-container">
+          <h2>Loading orders...</h2>
+          <p>Please wait while we fetch your orders.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="page-container">
+        <div className="error-container">
+          <h2>Error</h2>
+          <p>{error}</p>
+          <button onClick={() => window.location.reload()}>Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
@@ -120,8 +189,8 @@ const OrdersList = () => {
                       <small>{order.userEmail}</small>
                     </td>
                     <td>{order.carName}</td>
-                    <td>{new Date(order.startDate).toLocaleDateString()}</td>
-                    <td>{new Date(order.endDate).toLocaleDateString()}</td>
+                    <td>{order.startDate ? new Date(order.startDate.seconds ? order.startDate.seconds * 1000 : order.startDate).toLocaleDateString() : 'N/A'}</td>
+                    <td>{order.endDate ? new Date(order.endDate.seconds ? order.endDate.seconds * 1000 : order.endDate).toLocaleDateString() : 'N/A'}</td>
                     <td>{order.totalDays} days</td>
                     <td className="price">${order.totalPrice}</td>
                     <td>
@@ -129,7 +198,7 @@ const OrdersList = () => {
                         {getStatusText(order.status)}
                       </span>
                     </td>
-                    <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+                    <td>{order.createdAt ? new Date(order.createdAt.seconds ? order.createdAt.seconds * 1000 : order.createdAt).toLocaleDateString() : 'N/A'}</td>
                     <td>
                       <div className="action-buttons">
                         <Link to={`/edit-order/${order.id}`} className="edit-btn">Edit</Link>
@@ -147,7 +216,9 @@ const OrdersList = () => {
       <div className="stats-grid">
         {['pending', 'confirmed', 'delivered', 'cancelled'].map(status => (
           <div className="stat-card" key={status}>
-            <div className={`stat-icon ${status}`}>{status === 'pending' ? '📋' : status === 'confirmed' ? '✅' : status === 'delivered' ? '🚗' : '❌'}</div>
+            <div className={`stat-icon ${status}`}>
+              {status === 'pending' ? '📋' : status === 'confirmed' ? '✅' : status === 'delivered' ? '🚗' : '❌'}
+            </div>
             <div className="stat-info">
               <h3>{orders.filter(o => o.status === status).length}</h3>
               <p>{getStatusText(status)} Orders</p>
@@ -160,6 +231,189 @@ const OrdersList = () => {
 };
 
 export default OrdersList;
+// import React, { useState, useEffect } from 'react';
+// import { Link } from 'react-router-dom';
+// //import './OrdersList.css'; // <-- Make sure this CSS file includes the necessary styles
+
+// const OrdersList = () => {
+//   const [orders, setOrders] = useState([]);
+//   const [searchTerm, setSearchTerm] = useState('');
+//   const [filterStatus, setFilterStatus] = useState('all');
+
+//   useEffect(() => {
+//     const mockOrders = [
+//       {
+//         id: '1', userName: 'Ahmed Mohamed', userEmail: 'ahmed@example.com', carName: 'Toyota Camry 2023', startDate: '2024-12-15', endDate: '2024-12-20', totalDays: 5, totalPrice: 250, status: 'confirmed', createdAt: '2024-12-10'
+//       },
+//       {
+//         id: '2', userName: 'Fatima Ali', userEmail: 'fatima@example.com', carName: 'Hyundai Elantra 2022', startDate: '2024-12-18', endDate: '2024-12-25', totalDays: 7, totalPrice: 315, status: 'pending', createdAt: '2024-12-12'
+//       },
+//       {
+//         id: '3', userName: 'Khalid Salem', userEmail: 'khalid@example.com', carName: 'Nissan Altima 2023', startDate: '2024-12-22', endDate: '2024-12-28', totalDays: 6, totalPrice: 360, status: 'delivered', createdAt: '2024-12-14'
+//       },
+//       {
+//         id: '4', userName: 'Mariam Hassan', userEmail: 'mariam@example.com', carName: 'Kia Cerato 2022', startDate: '2024-12-20', endDate: '2024-12-24', totalDays: 4, totalPrice: 180, status: 'cancelled', createdAt: '2024-12-11'
+//       }
+//     ];
+//     setOrders(mockOrders);
+//   }, []);
+
+//   const getStatusBadgeClass = (status) => {
+//     switch (status) {
+//       case 'pending': return 'status-badge pending';
+//       case 'confirmed': return 'status-badge confirmed';
+//       case 'delivered': return 'status-badge delivered';
+//       case 'cancelled': return 'status-badge cancelled';
+//       default: return 'status-badge';
+//     }
+//   };
+
+//   const getStatusText = (status) => {
+//     switch (status) {
+//       case 'pending': return 'Pending';
+//       case 'confirmed': return 'Confirmed';
+//       case 'delivered': return 'Delivered';
+//       case 'cancelled': return 'Cancelled';
+//       default: return status;
+//     }
+//   };
+
+//   const filteredOrders = orders.filter(order => {
+//     const matchesSearch = order.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//       order.carName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//       order.userEmail.toLowerCase().includes(searchTerm.toLowerCase());
+//     const matchesFilter = filterStatus === 'all' || order.status === filterStatus;
+//     return matchesSearch && matchesFilter;
+//   });
+
+//   const handleDeleteOrder = (orderId) => {
+//     if (window.confirm('Are you sure you want to delete this order?')) {
+//       setOrders(orders.filter(order => order.id !== orderId));
+//     }
+//   };
+
+//   return (
+//     <div className="page-container">
+//       <div className="page-header">
+//         <h1>Orders Management</h1>
+//         <p>View and manage all reservation orders</p>
+//       </div>
+
+//       <div className="table-container">
+//         <div className="table-header">
+//           <h2>Orders List ({filteredOrders.length})</h2>
+//           <div className="table-tools">
+//             <input
+//               type="text"
+//               placeholder="Search orders..."
+//               value={searchTerm}
+//               onChange={(e) => setSearchTerm(e.target.value)}
+//               className="search-input"
+//             />
+//             <select
+//               value={filterStatus}
+//               onChange={(e) => setFilterStatus(e.target.value)}
+//               className="status-filter"
+//             >
+//               <option value="all">All Statuses</option>
+//               <option value="pending">Pending</option>
+//               <option value="confirmed">Confirmed</option>
+//               <option value="delivered">Delivered</option>
+//               <option value="cancelled">Cancelled</option>
+//             </select>
+//           </div>
+//         </div>
+
+//         {filteredOrders.length === 0 ? (
+//           <div className="no-orders">
+//             <h3>No orders found</h3>
+//             <p>No orders match your search criteria.</p>
+//           </div>
+//         ) : (
+//           <div className="recent-orders-container">
+//             <table className="data-table recent-orders">
+//               <thead>
+//                 <tr>
+//                   <th>User</th>
+//                   <th>Car</th>
+//                   <th>Start Date</th>
+//                   <th>End Date</th>
+//                   <th>Total Days</th>
+//                   <th>Total Price</th>
+//                   <th>Status</th>
+//                   <th>Order Date</th>
+//                   <th>Actions</th>
+//                 </tr>
+//               </thead>
+//               <tbody>
+//                 {filteredOrders.map(order => (
+//                   <tr key={order.id}>
+//                     <td>
+//                       <strong>{order.userName}</strong><br />
+//                       <small>{order.userEmail}</small>
+//                     </td>
+//                     <td>{order.carName}</td>
+//                     <td>{new Date(order.startDate).toLocaleDateString()}</td>
+//                     <td>{new Date(order.endDate).toLocaleDateString()}</td>
+//                     <td>{order.totalDays} days</td>
+//                     <td className="price">${order.totalPrice}</td>
+//                     <td>
+//                       <span className={getStatusBadgeClass(order.status)}>
+//                         {getStatusText(order.status)}
+//                       </span>
+//                     </td>
+//                     <td>{new Date(order.createdAt).toLocaleDateString()}</td>
+//                     <td>
+//                       <div className="action-buttons">
+//                         <Link to={`/edit-order/${order.id}`} className="edit-btn">Edit</Link>
+//                         <button onClick={() => handleDeleteOrder(order.id)} className="delete-btn">Delete</button>
+//                       </div>
+//                     </td>
+//                   </tr>
+//                 ))}
+//               </tbody>
+//             </table>
+//           </div>
+//         )}
+//       </div>
+
+//       <div className="stats-grid">
+//         {['pending', 'confirmed', 'delivered', 'cancelled'].map(status => (
+//           <div className="stat-card" key={status}>
+//             <div className={`stat-icon ${status}`}>{status === 'pending' ? '📋' : status === 'confirmed' ? '✅' : status === 'delivered' ? '🚗' : '❌'}</div>
+//             <div className="stat-info">
+//               <h3>{orders.filter(o => o.status === status).length}</h3>
+//               <p>{getStatusText(status)} Orders</p>
+//             </div>
+//           </div>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default OrdersList;
+//**************************************************************** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // import React, { useState, useEffect } from 'react';
 // import { Link } from 'react-router-dom';

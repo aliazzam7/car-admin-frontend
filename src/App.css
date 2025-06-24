@@ -347,6 +347,30 @@ body {
 .loading-spinner {
   animation: spin 1s linear infinite;
 }
+/*pour userdetails :*/
+.user-details-container {
+  max-width: 600px;
+  margin: 30px auto;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.user-form label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.user-form input,
+.user-form select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
 
 /* ===== SIDEBAR ===== */
 .sidebar {

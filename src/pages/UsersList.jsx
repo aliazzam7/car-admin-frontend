@@ -1,79 +1,60 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  collection,
+  getDocs,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  orderBy,
+  query,
+  updateDoc
+} from 'firebase/firestore';
+import { db } from '../firebase.js';
 
 const UsersList = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [updating, setUpdating] = useState(null);
+
+  // States for editing user
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [updatingForm, setUpdatingForm] = useState(false);
 
   useEffect(() => {
-    // Simulate loading users from Firebase
-    const loadUsers = async () => {
-      try {
-        // Mock data - replace with actual Firebase call
-        const mockUsers = [
-          {
-            id: '1',
-            fullName: 'John Doe',
-            email: 'john.doe@email.com',
-            phone: '+1234567890',
-            role: 'user',
-            status: 'active',
-            totalOrders: 5,
-            joinDate: '2024-01-15',
-            lastLogin: '2024-06-01'
-          },
-          {
-            id: '2',
-            fullName: 'Jane Smith',
-            email: 'jane.smith@email.com',
-            phone: '+1234567891',
-            role: 'user',
-            status: 'active',
-            totalOrders: 3,
-            joinDate: '2024-02-20',
-            lastLogin: '2024-05-28'
-          },
-          {
-            id: '3',
-            fullName: 'Mike Johnson',
-            email: 'mike.johnson@email.com',
-            phone: '+1234567892',
-            role: 'admin',
-            status: 'active',
-            totalOrders: 0,
-            joinDate: '2024-01-01',
-            lastLogin: '2024-06-02'
-          },
-          {
-            id: '4',
-            fullName: 'Sarah Wilson',
-            email: 'sarah.wilson@email.com',
-            phone: '+1234567893',
-            role: 'user',
-            status: 'inactive',
-            totalOrders: 1,
-            joinDate: '2024-03-10',
-            lastLogin: '2024-04-15'
-          }
-        ];
-        
-        setUsers(mockUsers);
+    const usersQuery = query(
+      collection(db, 'users'),
+      orderBy('fullName', 'asc')
+    );
+
+    const unsubscribe = onSnapshot(
+      usersQuery,
+      (snapshot) => {
+        const usersData = [];
+        snapshot.forEach((doc) => {
+          usersData.push({ id: doc.id, ...doc.data() });
+        });
+        setUsers(usersData);
         setLoading(false);
-      } catch (error) {
-        console.error('Error loading users:', error);
+        setError(null);
+      },
+      (error) => {
+        console.error('Error fetching users:', error);
+        setError('Error loading users data');
         setLoading(false);
       }
-    };
+    );
 
-    loadUsers();
+    return () => unsubscribe();
   }, []);
 
   const handleDeleteUser = async (userId, userName) => {
     if (window.confirm(`Are you sure you want to delete user "${userName}"?`)) {
       try {
-        // Here you would delete the user from Firebase
-        setUsers(users.filter(user => user.id !== userId));
+        await deleteDoc(doc(db, 'users', userId));
         alert('User deleted successfully!');
       } catch (error) {
         console.error('Error deleting user:', error);
@@ -82,29 +63,88 @@ const UsersList = () => {
     }
   };
 
-  const toggleUserStatus = async (userId) => {
+  const toggleUserStatus = async (userId, currentStatus) => {
     try {
-      setUsers(users.map(user => 
-        user.id === userId 
-          ? { ...user, status: user.status === 'active' ? 'inactive' : 'active' }
-          : user
-      ));
+      setUpdating(userId);
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+
+      const userDoc = doc(db, 'users', userId);
+      await updateDoc(userDoc, {
+        status: newStatus,
+        updatedAt: new Date()
+      });
+
       alert('User status updated successfully!');
     } catch (error) {
       console.error('Error updating user status:', error);
       alert('Error updating user status. Please try again.');
+    } finally {
+      setUpdating(null);
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleViewUser = (user) => {
+    setSelectedUser(user);
+    setFormData({ ...user });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleUpdateUser = async () => {
+    try {
+      setUpdatingForm(true);
+      const userDocRef = doc(db, 'users', selectedUser.id);
+      await updateDoc(userDocRef, {
+        ...formData,
+        updatedAt: new Date()
+      });
+      alert('User updated successfully!');
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      alert('Failed to update user.');
+    } finally {
+      setUpdatingForm(false);
+    }
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    if (date.toDate && typeof date.toDate === 'function') {
+      return date.toDate().toLocaleDateString();
+    }
+    return new Date(date).toLocaleDateString();
+  };
+
+  const filteredUsers = users.filter(
+    (user) =>
+      (user.fullName && user.fullName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
+        <p>Loading users...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-container">
+        <h3>Error</h3>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()} className="retry-btn">
+          Try Again
+        </button>
       </div>
     );
   }
@@ -140,8 +180,29 @@ const UsersList = () => {
 
         {filteredUsers.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-            <h3>No users found</h3>
-            <p>Try adjusting your search terms or add a new user.</p>
+            <h3>{searchTerm ? 'No users found' : 'No users available'}</h3>
+            <p>
+              {searchTerm
+                ? 'Try adjusting your search terms or add a new user.'
+                : 'Start by adding your first user.'}
+            </p>
+            {!searchTerm && (
+              <Link
+                to="/add-user"
+                className="add-btn"
+                style={{
+                  marginTop: '20px',
+                  display: 'inline-block',
+                  padding: '10px 20px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  textDecoration: 'none',
+                  borderRadius: '4px'
+                }}
+              >
+                + Add First User
+              </Link>
+            )}
           </div>
         ) : (
           <table className="data-table">
@@ -158,74 +219,86 @@ const UsersList = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map(user => (
+              {filteredUsers.map((user) => (
                 <tr key={user.id}>
                   <td>
                     <div>
                       <div style={{ fontWeight: '600', color: '#333' }}>
-                        {user.fullName}
+                        {user.fullName || 'Unknown User'}
                       </div>
                       <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                        {user.email}
+                        {user.email || 'No email provided'}
                       </div>
                     </div>
                   </td>
-                  <td>
-                    <div style={{ fontSize: '0.9rem' }}>
-                      {user.phone || 'Not provided'}
-                    </div>
-                  </td>
+                  <td>{user.phone || 'Not provided'}</td>
                   <td>
                     <span className={`status-badge ${user.role === 'admin' ? 'confirmed' : 'pending'}`}>
-                      {user.role}
+                      {user.role || 'user'}
                     </span>
                   </td>
-                  <td>
-                    <div style={{ textAlign: 'center', fontWeight: '600' }}>
-                      {user.totalOrders}
-                    </div>
-                  </td>
+                  <td style={{ textAlign: 'center', fontWeight: '600' }}>{user.totalOrders || 0}</td>
                   <td>
                     <span className={`status-badge ${user.status === 'active' ? 'available' : 'unavailable'}`}>
-                      {user.status}
+                      {user.status || 'inactive'}
                     </span>
                   </td>
-                  <td>
-                    <div style={{ fontSize: '0.9rem' }}>
-                      {new Date(user.joinDate).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '0.9rem' }}>
-                      {new Date(user.lastLogin).toLocaleDateString()}
-                    </div>
-                  </td>
+                  <td>{formatDate(user.joinDate || user.createdAt)}</td>
+                  <td>{formatDate(user.lastLogin)}</td>
                   <td>
                     <div className="action-buttons">
                       <button
+                        onClick={() => handleViewUser(user)}
                         className="view-btn"
-                        onClick={() => alert(`Viewing details for ${user.fullName}`)}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '0.8rem',
+                          backgroundColor: '#17a2b8',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          marginRight: '5px',
+                          cursor: 'pointer'
+                        }}
                         title="View Details"
                       >
                         View
                       </button>
                       <button
                         className={user.status === 'active' ? 'cancel-btn' : 'submit-btn'}
-                        onClick={() => toggleUserStatus(user.id)}
+                        onClick={() => toggleUserStatus(user.id, user.status)}
+                        disabled={updating === user.id}
                         style={{
                           padding: '6px 12px',
                           fontSize: '0.8rem',
                           border: 'none',
                           borderRadius: '3px',
-                          cursor: 'pointer'
+                          cursor: updating === user.id ? 'not-allowed' : 'pointer',
+                          backgroundColor: user.status === 'active' ? '#dc3545' : '#28a745',
+                          color: 'white',
+                          marginRight: '5px',
+                          opacity: updating === user.id ? 0.6 : 1
                         }}
                         title={user.status === 'active' ? 'Deactivate' : 'Activate'}
                       >
-                        {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                        {updating === user.id
+                          ? 'Updating...'
+                          : user.status === 'active'
+                          ? 'Deactivate'
+                          : 'Activate'}
                       </button>
                       <button
                         className="delete-btn"
                         onClick={() => handleDeleteUser(user.id, user.fullName)}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '0.8rem',
+                          backgroundColor: '#dc3545',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer'
+                        }}
                         title="Delete User"
                       >
                         Delete
@@ -239,17 +312,678 @@ const UsersList = () => {
         )}
       </div>
 
-      <div style={{ marginTop: '20px', padding: '15px', background: '#fff3cd', borderRadius: '5px', border: '1px solid #ffeaa7' }}>
-        <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>User Management Tips:</h4>
-        <ul style={{ margin: 0, paddingLeft: '20px', color: '#856404' }}>
-          <li>Deactivated users cannot log in but their data is preserved</li>
-          <li>Admin users have full system access - use carefully</li>
-          <li>View user details to see their complete reservation history</li>
-          <li>Contact information can be used for customer support</li>
-        </ul>
-      </div>
+      {selectedUser && (
+        <div
+          style={{
+            padding: '20px',
+            marginTop: '30px',
+            border: '1px solid #ccc',
+            borderRadius: '8px',
+            background: '#f9f9f9'
+          }}
+        >
+          <h3>Edit User: {selectedUser.fullName}</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+            <div>
+              <label>Full Name:</label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName || ''}
+                onChange={handleInputChange}
+                style={{ width: '100%', padding: '8px' }}
+              />
+            </div>
+            <div>
+              <label>Email:</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email || ''}
+                onChange={handleInputChange}
+                style={{ width: '100%', padding: '8px' }}
+              />
+            </div>
+            <div>
+              <label>Phone:</label>
+              <input
+                type="text"
+                name="phone"
+                value={formData.phone || ''}
+                onChange={handleInputChange}
+                style={{ width: '100%', padding: '8px' }}
+              />
+            </div>
+            <div>
+              <label>Role:</label>
+              <select
+                name="role"
+                value={formData.role || 'user'}
+                onChange={handleInputChange}
+                style={{ width: '100%', padding: '8px' }}
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
+          <div style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
+            <button
+              onClick={handleUpdateUser}
+              disabled={updatingForm}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: updatingForm ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {updatingForm ? 'Updating...' : 'Update User'}
+            </button>
+            <button
+              onClick={() => setSelectedUser(null)}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px'
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default UsersList;
+
+
+//code vrai avec backend mais button view il ne travail pas
+// import React, { useState, useEffect } from 'react';
+// import { Link } from 'react-router-dom';
+// import { 
+//   collection, 
+//   getDocs, 
+//   deleteDoc, 
+//   doc, 
+//   onSnapshot,
+//   orderBy,
+//   query,
+//   updateDoc
+// } from 'firebase/firestore';
+// import { db } from '../firebase.js'; // Make sure the path is correct
+
+// const UsersList = () => {
+//   const [users, setUsers] = useState([]);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+//   const [searchTerm, setSearchTerm] = useState('');
+//   const [updating, setUpdating] = useState(null); // Track which user is being updated
+
+//   useEffect(() => {
+//     // Listen to real-time changes from Firestore
+//     const usersQuery = query(
+//       collection(db, 'users'),
+//       orderBy('fullName', 'asc')
+//     );
+
+//     const unsubscribe = onSnapshot(
+//       usersQuery,
+//       (snapshot) => {
+//         const usersData = [];
+//         snapshot.forEach((doc) => {
+//           usersData.push({
+//             id: doc.id,
+//             ...doc.data()
+//           });
+//         });
+//         setUsers(usersData);
+//         setLoading(false);
+//         setError(null);
+//       },
+//       (error) => {
+//         console.error('Error fetching users:', error);
+//         setError('Error loading users data');
+//         setLoading(false);
+//       }
+//     );
+
+//     // Cleanup listener on component unmount
+//     return () => unsubscribe();
+//   }, []);
+
+//   const handleDeleteUser = async (userId, userName) => {
+//     if (window.confirm(`Are you sure you want to delete user "${userName}"?`)) {
+//       try {
+//         await deleteDoc(doc(db, 'users', userId));
+//         alert('User deleted successfully!');
+//       } catch (error) {
+//         console.error('Error deleting user:', error);
+//         alert('Error deleting user. Please try again.');
+//       }
+//     }
+//   };
+
+//   const toggleUserStatus = async (userId, currentStatus) => {
+//     try {
+//       setUpdating(userId);
+//       const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      
+//       const userDoc = doc(db, 'users', userId);
+//       await updateDoc(userDoc, {
+//         status: newStatus,
+//         updatedAt: new Date()
+//       });
+      
+//       alert('User status updated successfully!');
+//     } catch (error) {
+//       console.error('Error updating user status:', error);
+//       alert('Error updating user status. Please try again.');
+//     } finally {
+//       setUpdating(null);
+//     }
+//   };
+
+//   const formatDate = (date) => {
+//     if (!date) return 'N/A';
+    
+//     // Handle Firebase Timestamp
+//     if (date.toDate && typeof date.toDate === 'function') {
+//       return date.toDate().toLocaleDateString();
+//     }
+    
+//     // Handle regular Date or string
+//     return new Date(date).toLocaleDateString();
+//   };
+
+//   const filteredUsers = users.filter(user =>
+//     (user.fullName && user.fullName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+//     (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()))
+//   );
+
+//   if (loading) {
+//     return (
+//       <div className="loading-container">
+//         <div className="loading-spinner"></div>
+//         <p>Loading users...</p>
+//       </div>
+//     );
+//   }
+
+//   if (error) {
+//     return (
+//       <div className="error-container">
+//         <h3>Error</h3>
+//         <p>{error}</p>
+//         <button onClick={() => window.location.reload()} className="retry-btn">
+//           Try Again
+//         </button>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div>
+//       <div className="page-header">
+//         <h1>Users Management</h1>
+//         <p>Manage user accounts and permissions</p>
+//       </div>
+
+//       <div className="table-container">
+//         <div className="table-header">
+//           <h2>All Users ({filteredUsers.length})</h2>
+//           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+//             <input
+//               type="text"
+//               placeholder="Search users..."
+//               value={searchTerm}
+//               onChange={(e) => setSearchTerm(e.target.value)}
+//               style={{
+//                 padding: '8px 12px',
+//                 border: '1px solid #ddd',
+//                 borderRadius: '5px',
+//                 fontSize: '0.9rem'
+//               }}
+//             />
+//             <Link to="/add-user" className="add-btn">
+//               + Add User
+//             </Link>
+//           </div>
+//         </div>
+
+//         {filteredUsers.length === 0 ? (
+//           <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+//             <h3>{searchTerm ? 'No users found' : 'No users available'}</h3>
+//             <p>
+//               {searchTerm 
+//                 ? 'Try adjusting your search terms or add a new user.' 
+//                 : 'Start by adding your first user.'
+//               }
+//             </p>
+//             {!searchTerm && (
+//               <Link 
+//                 to="/add-user" 
+//                 className="add-btn" 
+//                 style={{ 
+//                   marginTop: '20px', 
+//                   display: 'inline-block',
+//                   padding: '10px 20px',
+//                   backgroundColor: '#28a745',
+//                   color: 'white',
+//                   textDecoration: 'none',
+//                   borderRadius: '4px'
+//                 }}
+//               >
+//                 + Add First User
+//               </Link>
+//             )}
+//           </div>
+//         ) : (
+//           <table className="data-table">
+//             <thead>
+//               <tr>
+//                 <th>User</th>
+//                 <th>Contact</th>
+//                 <th>Role</th>
+//                 <th>Orders</th>
+//                 <th>Status</th>
+//                 <th>Join Date</th>
+//                 <th>Last Login</th>
+//                 <th>Actions</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               {filteredUsers.map(user => (
+//                 <tr key={user.id}>
+//                   <td>
+//                     <div>
+//                       <div style={{ fontWeight: '600', color: '#333' }}>
+//                         {user.fullName || 'Unknown User'}
+//                       </div>
+//                       <div style={{ fontSize: '0.85rem', color: '#666' }}>
+//                         {user.email || 'No email provided'}
+//                       </div>
+//                     </div>
+//                   </td>
+//                   <td>
+//                     <div style={{ fontSize: '0.9rem' }}>
+//                       {user.phone || 'Not provided'}
+//                     </div>
+//                   </td>
+//                   <td>
+//                     <span className={`status-badge ${user.role === 'admin' ? 'confirmed' : 'pending'}`}>
+//                       {user.role || 'user'}
+//                     </span>
+//                   </td>
+//                   <td>
+//                     <div style={{ textAlign: 'center', fontWeight: '600' }}>
+//                       {user.totalOrders || 0}
+//                     </div>
+//                   </td>
+//                   <td>
+//                     <span className={`status-badge ${user.status === 'active' ? 'available' : 'unavailable'}`}>
+//                       {user.status || 'inactive'}
+//                     </span>
+//                   </td>
+//                   <td>
+//                     <div style={{ fontSize: '0.9rem' }}>
+//                       {formatDate(user.joinDate || user.createdAt)}
+//                     </div>
+//                   </td>
+//                   <td>
+//                     <div style={{ fontSize: '0.9rem' }}>
+//                       {formatDate(user.lastLogin)}
+//                     </div>
+//                   </td>
+//                   <td>
+//                     <div className="action-buttons">
+//                       <Link
+//                         to={`/user-details/${user.id}`}
+//                         className="view-btn"
+//                         style={{
+//                           padding: '6px 12px',
+//                           fontSize: '0.8rem',
+//                           backgroundColor: '#17a2b8',
+//                           color: 'white',
+//                           textDecoration: 'none',
+//                           borderRadius: '3px',
+//                           marginRight: '5px'
+//                         }}
+//                         title="View Details"
+//                       >
+//                         View
+//                       </Link>
+//                       <button
+//                         className={user.status === 'active' ? 'cancel-btn' : 'submit-btn'}
+//                         onClick={() => toggleUserStatus(user.id, user.status)}
+//                         disabled={updating === user.id}
+//                         style={{
+//                           padding: '6px 12px',
+//                           fontSize: '0.8rem',
+//                           border: 'none',
+//                           borderRadius: '3px',
+//                           cursor: updating === user.id ? 'not-allowed' : 'pointer',
+//                           backgroundColor: user.status === 'active' ? '#dc3545' : '#28a745',
+//                           color: 'white',
+//                           marginRight: '5px',
+//                           opacity: updating === user.id ? 0.6 : 1
+//                         }}
+//                         title={user.status === 'active' ? 'Deactivate' : 'Activate'}
+//                       >
+//                         {updating === user.id 
+//                           ? 'Updating...' 
+//                           : (user.status === 'active' ? 'Deactivate' : 'Activate')
+//                         }
+//                       </button>
+//                       <button
+//                         className="delete-btn"
+//                         onClick={() => handleDeleteUser(user.id, user.fullName)}
+//                         style={{
+//                           padding: '6px 12px',
+//                           fontSize: '0.8rem',
+//                           backgroundColor: '#dc3545',
+//                           color: 'white',
+//                           border: 'none',
+//                           borderRadius: '3px',
+//                           cursor: 'pointer'
+//                         }}
+//                         title="Delete User"
+//                       >
+//                         Delete
+//                       </button>
+//                     </div>
+//                   </td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         )}
+//       </div>
+
+//       <div style={{ marginTop: '20px', padding: '15px', background: '#fff3cd', borderRadius: '5px', border: '1px solid #ffeaa7' }}>
+//         <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>User Management Tips:</h4>
+//         <ul style={{ margin: 0, paddingLeft: '20px', color: '#856404' }}>
+//           <li>Deactivated users cannot log in but their data is preserved</li>
+//           <li>Admin users have full system access - use carefully</li>
+//           <li>View user details to see their complete reservation history</li>
+//           <li>Contact information can be used for customer support</li>
+//           <li>Real-time updates: Changes are reflected immediately across all sessions</li>
+//         </ul>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default UsersList;
+//******************************************************************************************************** */
+
+
+
+
+
+
+
+
+
+
+// import React, { useState, useEffect } from 'react';
+// import { Link } from 'react-router-dom';
+
+// const UsersList = () => {
+//   const [users, setUsers] = useState([]);
+//   const [loading, setLoading] = useState(true);
+//   const [searchTerm, setSearchTerm] = useState('');
+
+//   useEffect(() => {
+//     // Simulate loading users from Firebase
+//     const loadUsers = async () => {
+//       try {
+//         // Mock data - replace with actual Firebase call
+//         const mockUsers = [
+//           {
+//             id: '1',
+//             fullName: 'John Doe',
+//             email: 'john.doe@email.com',
+//             phone: '+1234567890',
+//             role: 'user',
+//             status: 'active',
+//             totalOrders: 5,
+//             joinDate: '2024-01-15',
+//             lastLogin: '2024-06-01'
+//           },
+//           {
+//             id: '2',
+//             fullName: 'Jane Smith',
+//             email: 'jane.smith@email.com',
+//             phone: '+1234567891',
+//             role: 'user',
+//             status: 'active',
+//             totalOrders: 3,
+//             joinDate: '2024-02-20',
+//             lastLogin: '2024-05-28'
+//           },
+//           {
+//             id: '3',
+//             fullName: 'Mike Johnson',
+//             email: 'mike.johnson@email.com',
+//             phone: '+1234567892',
+//             role: 'admin',
+//             status: 'active',
+//             totalOrders: 0,
+//             joinDate: '2024-01-01',
+//             lastLogin: '2024-06-02'
+//           },
+//           {
+//             id: '4',
+//             fullName: 'Sarah Wilson',
+//             email: 'sarah.wilson@email.com',
+//             phone: '+1234567893',
+//             role: 'user',
+//             status: 'inactive',
+//             totalOrders: 1,
+//             joinDate: '2024-03-10',
+//             lastLogin: '2024-04-15'
+//           }
+//         ];
+        
+//         setUsers(mockUsers);
+//         setLoading(false);
+//       } catch (error) {
+//         console.error('Error loading users:', error);
+//         setLoading(false);
+//       }
+//     };
+
+//     loadUsers();
+//   }, []);
+
+//   const handleDeleteUser = async (userId, userName) => {
+//     if (window.confirm(`Are you sure you want to delete user "${userName}"?`)) {
+//       try {
+//         // Here you would delete the user from Firebase
+//         setUsers(users.filter(user => user.id !== userId));
+//         alert('User deleted successfully!');
+//       } catch (error) {
+//         console.error('Error deleting user:', error);
+//         alert('Error deleting user. Please try again.');
+//       }
+//     }
+//   };
+
+//   const toggleUserStatus = async (userId) => {
+//     try {
+//       setUsers(users.map(user => 
+//         user.id === userId 
+//           ? { ...user, status: user.status === 'active' ? 'inactive' : 'active' }
+//           : user
+//       ));
+//       alert('User status updated successfully!');
+//     } catch (error) {
+//       console.error('Error updating user status:', error);
+//       alert('Error updating user status. Please try again.');
+//     }
+//   };
+
+//   const filteredUsers = users.filter(user =>
+//     user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//     user.email.toLowerCase().includes(searchTerm.toLowerCase())
+//   );
+
+//   if (loading) {
+//     return (
+//       <div className="loading-container">
+//         <div className="loading-spinner"></div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div>
+//       <div className="page-header">
+//         <h1>Users Management</h1>
+//         <p>Manage user accounts and permissions</p>
+//       </div>
+
+//       <div className="table-container">
+//         <div className="table-header">
+//           <h2>All Users ({filteredUsers.length})</h2>
+//           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+//             <input
+//               type="text"
+//               placeholder="Search users..."
+//               value={searchTerm}
+//               onChange={(e) => setSearchTerm(e.target.value)}
+//               style={{
+//                 padding: '8px 12px',
+//                 border: '1px solid #ddd',
+//                 borderRadius: '5px',
+//                 fontSize: '0.9rem'
+//               }}
+//             />
+//             <Link to="/add-user" className="add-btn">
+//               + Add User
+//             </Link>
+//           </div>
+//         </div>
+
+//         {filteredUsers.length === 0 ? (
+//           <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+//             <h3>No users found</h3>
+//             <p>Try adjusting your search terms or add a new user.</p>
+//           </div>
+//         ) : (
+//           <table className="data-table">
+//             <thead>
+//               <tr>
+//                 <th>User</th>
+//                 <th>Contact</th>
+//                 <th>Role</th>
+//                 <th>Orders</th>
+//                 <th>Status</th>
+//                 <th>Join Date</th>
+//                 <th>Last Login</th>
+//                 <th>Actions</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               {filteredUsers.map(user => (
+//                 <tr key={user.id}>
+//                   <td>
+//                     <div>
+//                       <div style={{ fontWeight: '600', color: '#333' }}>
+//                         {user.fullName}
+//                       </div>
+//                       <div style={{ fontSize: '0.85rem', color: '#666' }}>
+//                         {user.email}
+//                       </div>
+//                     </div>
+//                   </td>
+//                   <td>
+//                     <div style={{ fontSize: '0.9rem' }}>
+//                       {user.phone || 'Not provided'}
+//                     </div>
+//                   </td>
+//                   <td>
+//                     <span className={`status-badge ${user.role === 'admin' ? 'confirmed' : 'pending'}`}>
+//                       {user.role}
+//                     </span>
+//                   </td>
+//                   <td>
+//                     <div style={{ textAlign: 'center', fontWeight: '600' }}>
+//                       {user.totalOrders}
+//                     </div>
+//                   </td>
+//                   <td>
+//                     <span className={`status-badge ${user.status === 'active' ? 'available' : 'unavailable'}`}>
+//                       {user.status}
+//                     </span>
+//                   </td>
+//                   <td>
+//                     <div style={{ fontSize: '0.9rem' }}>
+//                       {new Date(user.joinDate).toLocaleDateString()}
+//                     </div>
+//                   </td>
+//                   <td>
+//                     <div style={{ fontSize: '0.9rem' }}>
+//                       {new Date(user.lastLogin).toLocaleDateString()}
+//                     </div>
+//                   </td>
+//                   <td>
+//                     <div className="action-buttons">
+//                       <button
+//                         className="view-btn"
+//                         onClick={() => alert(`Viewing details for ${user.fullName}`)}
+//                         title="View Details"
+//                       >
+//                         View
+//                       </button>
+//                       <button
+//                         className={user.status === 'active' ? 'cancel-btn' : 'submit-btn'}
+//                         onClick={() => toggleUserStatus(user.id)}
+//                         style={{
+//                           padding: '6px 12px',
+//                           fontSize: '0.8rem',
+//                           border: 'none',
+//                           borderRadius: '3px',
+//                           cursor: 'pointer'
+//                         }}
+//                         title={user.status === 'active' ? 'Deactivate' : 'Activate'}
+//                       >
+//                         {user.status === 'active' ? 'Deactivate' : 'Activate'}
+//                       </button>
+//                       <button
+//                         className="delete-btn"
+//                         onClick={() => handleDeleteUser(user.id, user.fullName)}
+//                         title="Delete User"
+//                       >
+//                         Delete
+//                       </button>
+//                     </div>
+//                   </td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         )}
+//       </div>
+
+//       <div style={{ marginTop: '20px', padding: '15px', background: '#fff3cd', borderRadius: '5px', border: '1px solid #ffeaa7' }}>
+//         <h4 style={{ margin: '0 0 10px 0', color: '#856404' }}>User Management Tips:</h4>
+//         <ul style={{ margin: 0, paddingLeft: '20px', color: '#856404' }}>
+//           <li>Deactivated users cannot log in but their data is preserved</li>
+//           <li>Admin users have full system access - use carefully</li>
+//           <li>View user details to see their complete reservation history</li>
+//           <li>Contact information can be used for customer support</li>
+//         </ul>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default UsersList;
