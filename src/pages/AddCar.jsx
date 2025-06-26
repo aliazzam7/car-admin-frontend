@@ -85,8 +85,11 @@ const AddCar = () => {
       console.log("Form data:", formData);
 
       // إنشاء URL الصورة الكامل
+      // const fullImageUrl = formData.imageUrl 
+      //   ? `/assets/images/cars/${formData.imageUrl}` 
+      //   : "";
       const fullImageUrl = formData.imageUrl 
-        ? `/assets/images/cars/${formData.imageUrl}` 
+        ? `https://car-admin-frontend.vercel.app/assets/images/cars/${formData.imageUrl}` 
         : "";
 
       // Préparer les données de la voiture
