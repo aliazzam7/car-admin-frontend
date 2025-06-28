@@ -30,7 +30,7 @@ function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && user.email === "adminali@carreservation.com") {
+      if (user && user.email === "alitechsolutions2425@gmail.com") {
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);
@@ -99,6 +99,11 @@ function App() {
 export default App;
 
 
+
+
+
+
+//************************************************************************ */
 //version sans backend firebase
 // import React, { useState, useEffect } from 'react';
 // import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';

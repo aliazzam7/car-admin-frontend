@@ -173,9 +173,19 @@
 // };
 
 // export default Login;
+//************************************************************************************* */
 
+
+
+
+
+//code trueeeeee
 // //EMAIL:adminali@carreservation.com
 // //pass:adminali123456
+
+
+//EMAIL:alitechsolutions2425@gmail.com
+// //pass:adminali#123456
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -202,7 +212,7 @@ const Login = () => {
       await setPersistence(auth, browserSessionPersistence); // لا يتذكر المستخدم دائمًا
       const res = await signInWithEmailAndPassword(auth, formData.email, formData.password);
 
-      if (res.user.email === "adminali@carreservation.com") {
+      if (res.user.email === "alitechsolutions2425@gmail.com") {
         navigate("/dashboard");
       } else {
         setError("You are not allowed to access as an admin.");
