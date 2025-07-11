@@ -67,6 +67,36 @@ const CarsList = () => {
     }).format(amount);
   };
 
+  // Function to get status display text and styling
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case 'available':
+        return {
+          text: 'Available',
+          backgroundColor: '#28a745',
+          color: 'white'
+        };
+      case 'unavailable':
+        return {
+          text: 'Unavailable',
+          backgroundColor: '#dc3545',
+          color: 'white'
+        };
+      case 'maintenance':
+        return {
+          text: 'Under Maintenance',
+          backgroundColor: '#ffc107',
+          color: '#212529'
+        };
+      default:
+        return {
+          text: 'Unknown',
+          backgroundColor: '#6c757d',
+          color: 'white'
+        };
+    }
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -120,79 +150,98 @@ const CarsList = () => {
               </tr>
             </thead>
             <tbody>
-              {cars.map(car => (
-                <tr key={car.id}>
-                  <td>
-                    <img 
-                      src={car.image || car.imageUrl || 'https://via.placeholder.com/300x200/ccc/999?text=No+Image'} 
-                      alt={car.carName}
-                      className="car-image"
-                      style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
-                      onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/300x200/ccc/999?text=Image+Error';
-                      }}
-                    />
-                  </td>
-                  <td><strong>{car.carName}</strong></td>
-                  <td>{car.brand}</td>
-                  <td>{car.plateNumber}</td>
-                  <td>{formatCurrency(car.dailyPrice)}</td>
-                  <td>
-                    <span className={`transmission-badge ${car.transmission}`}>
-                      {car.transmission === 'automatic' ? 'Automatic' : 'Manual'}
-                    </span>
-                  </td>
-                  <td>{car.passengers}</td>
-                  <td>
-                    <span className={`fuel-badge ${car.fuelType}`}>
-                      {car.fuelType === 'gasoline' ? 'Gasoline' : 
-                       car.fuelType === 'diesel' ? 'Diesel' : 
-                       car.fuelType === 'electric' ? 'Electric' : 
-                       car.fuelType === 'hybrid' ? 'Hybrid' : 
-                       car.fuelType || 'Unknown'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${car.status}`}>
-                      {car.status === 'available' ? 'Available' : 'Unavailable'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="action-buttons">
-                      <Link 
-                        to={`/edit-car/${car.id}`} 
-                        className="edit-btn"
-                        style={{ 
-                          padding: '5px 10px', 
-                          marginRight: '5px', 
-                          backgroundColor: '#007bff', 
-                          color: 'white', 
-                          textDecoration: 'none', 
-                          borderRadius: '4px',
-                          fontSize: '12px'
+              {cars.map(car => {
+                const statusConfig = getStatusConfig(car.status);
+                return (
+                  <tr key={car.id}>
+                    <td>
+                      <img 
+                        src={car.image || car.imageUrl || 'https://via.placeholder.com/300x200/ccc/999?text=No+Image'} 
+                        alt={car.carName}
+                        className="car-image"
+                        style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/300x200/ccc/999?text=Image+Error';
                         }}
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        className="delete-btn"
-                        onClick={() => handleDelete(car.id, car.carName)}
-                        style={{ 
-                          padding: '5px 10px', 
-                          backgroundColor: '#dc3545', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '4px',
+                      />
+                    </td>
+                    <td><strong>{car.carName}</strong></td>
+                    <td>{car.brand}</td>
+                    <td>{car.plateNumber}</td>
+                    <td>{formatCurrency(car.dailyPrice)}</td>
+                    <td>
+                      <span className={`transmission-badge ${car.transmission}`}>
+                        {car.transmission === 'automatic' ? 'Automatic' : 'Manual'}
+                      </span>
+                    </td>
+                    <td>{car.passengers}</td>
+                    <td>
+                      <span className={`fuel-badge ${car.fuelType}`}>
+                        {car.fuelType === 'gasoline' ? 'Gasoline' : 
+                         car.fuelType === 'diesel' ? 'Diesel' : 
+                         car.fuelType === 'electric' ? 'Electric' : 
+                         car.fuelType === 'hybrid' ? 'Hybrid' : 
+                         car.fuelType || 'Unknown'}
+                      </span>
+                    </td>
+                    <td>
+                      <span 
+                        className={`status-badge ${car.status}`}
+                        style={{
+                          backgroundColor: statusConfig.backgroundColor,
+                          color: statusConfig.color,
+                          padding: '6px 12px',
+                          borderRadius: '20px',
                           fontSize: '12px',
-                          cursor: 'pointer'
+                          fontWeight: 'bold',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          border: 'none',
+                          display: 'inline-block',
+                          minWidth: '120px',
+                          textAlign: 'center'
                         }}
                       >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {statusConfig.text}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <Link 
+                          to={`/edit-car/${car.id}`} 
+                          className="edit-btn"
+                          style={{ 
+                            padding: '5px 10px', 
+                            marginRight: '5px', 
+                            backgroundColor: '#007bff', 
+                            color: 'white', 
+                            textDecoration: 'none', 
+                            borderRadius: '4px',
+                            fontSize: '12px'
+                          }}
+                        >
+                          Edit
+                        </Link>
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleDelete(car.id, car.carName)}
+                          style={{ 
+                            padding: '5px 10px', 
+                            backgroundColor: '#dc3545', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         ) : (
@@ -226,6 +275,235 @@ const CarsList = () => {
 };
 
 export default CarsList;
+// import React, { useState, useEffect } from 'react';
+// import { Link } from 'react-router-dom';
+// import { 
+//   collection, 
+//   getDocs, 
+//   deleteDoc, 
+//   doc, 
+//   onSnapshot,
+//   orderBy,
+//   query
+// } from 'firebase/firestore';
+// import { db } from '../firebase.js'; // Make sure the path is correct
+
+// const CarsList = () => {
+//   const [cars, setCars] = useState([]);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+
+//   useEffect(() => {
+//     // Listen to real-time changes from Firestore
+//     const carsQuery = query(
+//       collection(db, 'cars'),
+//       orderBy('carName', 'asc')
+//     );
+
+//     const unsubscribe = onSnapshot(
+//       carsQuery,
+//       (snapshot) => {
+//         const carsData = [];
+//         snapshot.forEach((doc) => {
+//           carsData.push({
+//             id: doc.id,
+//             ...doc.data()
+//           });
+//         });
+//         setCars(carsData);
+//         setLoading(false);
+//         setError(null);
+//       },
+//       (error) => {
+//         console.error('Error fetching cars:', error);
+//         setError('Error loading data');
+//         setLoading(false);
+//       }
+//     );
+
+//     // Cleanup listener on component unmount
+//     return () => unsubscribe();
+//   }, []);
+
+//   const handleDelete = async (id, carName) => {
+//     if (window.confirm(`Are you sure you want to delete ${carName}?`)) {
+//       try {
+//         await deleteDoc(doc(db, 'cars', id));
+//         alert('Car deleted successfully!');
+//       } catch (error) {
+//         console.error('Error deleting car:', error);
+//         alert('Error deleting car');
+//       }
+//     }
+//   };
+
+//   const formatCurrency = (amount) => {
+//     return new Intl.NumberFormat('en-US', {
+//       style: 'currency',
+//       currency: 'USD'
+//     }).format(amount);
+//   };
+
+//   if (loading) {
+//     return (
+//       <div className="loading-container">
+//         <div className="loading-spinner"></div>
+//         <p>Loading cars...</p>
+//       </div>
+//     );
+//   }
+
+//   if (error) {
+//     return (
+//       <div className="error-container">
+//         <h3>Error</h3>
+//         <p>{error}</p>
+//         <button onClick={() => window.location.reload()} className="retry-btn">
+//           Try Again
+//         </button>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div>
+//       <div className="page-header">
+//         <h1>Car Management</h1>
+//         <p>Manage your vehicle fleet</p>
+//       </div>
+
+//       <div className="table-container">
+//         <div className="table-header">
+//           <h2>Car List ({cars.length})</h2>
+//           <Link to="/add-car" className="add-btn">
+//             + Add a Car
+//           </Link>
+//         </div>
+
+//         {cars.length > 0 ? (
+//           <table className="data-table">
+//             <thead>
+//               <tr>
+//                 <th>Image</th>
+//                 <th>Name</th>
+//                 <th>Brand</th>
+//                 <th>Plate</th>
+//                 <th>Price/day</th>
+//                 <th>Transmission</th>
+//                 <th>Passengers</th>
+//                 <th>Fuel Type</th>
+//                 <th>Status</th>
+//                 <th>Actions</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               {cars.map(car => (
+//                 <tr key={car.id}>
+//                   <td>
+//                     <img 
+//                       src={car.image || car.imageUrl || 'https://via.placeholder.com/300x200/ccc/999?text=No+Image'} 
+//                       alt={car.carName}
+//                       className="car-image"
+//                       style={{ width: '80px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
+//                       onError={(e) => {
+//                         e.target.src = 'https://via.placeholder.com/300x200/ccc/999?text=Image+Error';
+//                       }}
+//                     />
+//                   </td>
+//                   <td><strong>{car.carName}</strong></td>
+//                   <td>{car.brand}</td>
+//                   <td>{car.plateNumber}</td>
+//                   <td>{formatCurrency(car.dailyPrice)}</td>
+//                   <td>
+//                     <span className={`transmission-badge ${car.transmission}`}>
+//                       {car.transmission === 'automatic' ? 'Automatic' : 'Manual'}
+//                     </span>
+//                   </td>
+//                   <td>{car.passengers}</td>
+//                   <td>
+//                     <span className={`fuel-badge ${car.fuelType}`}>
+//                       {car.fuelType === 'gasoline' ? 'Gasoline' : 
+//                        car.fuelType === 'diesel' ? 'Diesel' : 
+//                        car.fuelType === 'electric' ? 'Electric' : 
+//                        car.fuelType === 'hybrid' ? 'Hybrid' : 
+//                        car.fuelType || 'Unknown'}
+//                     </span>
+//                   </td>
+//                   <td>
+//                     <span className={`status-badge ${car.status}`}>
+//                       {car.status === 'available' ? 'Available' : 'Unavailable'}
+//                     </span>
+//                   </td>
+//                   <td>
+//                     <div className="action-buttons">
+//                       <Link 
+//                         to={`/edit-car/${car.id}`} 
+//                         className="edit-btn"
+//                         style={{ 
+//                           padding: '5px 10px', 
+//                           marginRight: '5px', 
+//                           backgroundColor: '#007bff', 
+//                           color: 'white', 
+//                           textDecoration: 'none', 
+//                           borderRadius: '4px',
+//                           fontSize: '12px'
+//                         }}
+//                       >
+//                         Edit
+//                       </Link>
+//                       <button
+//                         className="delete-btn"
+//                         onClick={() => handleDelete(car.id, car.carName)}
+//                         style={{ 
+//                           padding: '5px 10px', 
+//                           backgroundColor: '#dc3545', 
+//                           color: 'white', 
+//                           border: 'none', 
+//                           borderRadius: '4px',
+//                           fontSize: '12px',
+//                           cursor: 'pointer'
+//                         }}
+//                       >
+//                         Delete
+//                       </button>
+//                     </div>
+//                   </td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         ) : (
+//           <div style={{ 
+//             textAlign: 'center', 
+//             padding: '50px', 
+//             color: '#666' 
+//           }}>
+//             <h3>No cars found</h3>
+//             <p>Start by adding your first car.</p>
+//             <Link 
+//               to="/add-car" 
+//               className="add-btn" 
+//               style={{ 
+//                 marginTop: '20px', 
+//                 display: 'inline-block',
+//                 padding: '10px 20px',
+//                 backgroundColor: '#28a745',
+//                 color: 'white',
+//                 textDecoration: 'none',
+//                 borderRadius: '4px'
+//               }}
+//             >
+//               + Add a Car
+//             </Link>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default CarsList;
+
 
 
 

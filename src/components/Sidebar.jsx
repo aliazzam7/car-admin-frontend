@@ -19,7 +19,7 @@ const Sidebar = () => {
     { path: '/cars', label: 'Manage Cars', icon: <FaListAlt /> },
     { path: '/orders', label: 'Orders', icon: <FaClipboardList /> },
     { path: '/users', label: 'Users', icon: <FaUsers /> },
-    { path: '/messages', label: 'Messages', icon: <FaComments /> },
+    // { path: '/messages', label: 'Messages', icon: <FaComments /> },
     { path: '/settings', label: 'Settings', icon: <FaCog /> }
   ];
 
