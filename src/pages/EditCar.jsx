@@ -294,10 +294,10 @@ const EditCar = () => {
                 required
                 disabled={updating}
               >
-                <option value="gasoline">Gasoline</option>
+                <option value="petrol">Petrol</option>
                 <option value="diesel">Diesel</option>
-                <option value="hybrid">Hybrid</option>
                 <option value="electric">Electric</option>
+
               </select>
             </div>
             <div className="form-group">
