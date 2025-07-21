@@ -209,7 +209,7 @@ const Login = () => {
     setError('');
 
     try {
-      await setPersistence(auth, browserSessionPersistence); // لا يتذكر المستخدم دائمًا
+      await setPersistence(auth, browserSessionPersistence); 
       const res = await signInWithEmailAndPassword(auth, formData.email, formData.password);
 
       if (res.user.email === "alitechsolutions2425@gmail.com") {

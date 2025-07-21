@@ -26,7 +26,7 @@ const AddCar = () => {
     imageUrl: "", // بدل image file، نستخدم URL مباشرة
   });
 
-  // قائمة الصور المتاحة في public/assets/images/cars
+  // public/assets/images/cars (all images in this path)
   const availableImages = [
     "altima.jpg",
     "audi.jpg", 
@@ -41,7 +41,17 @@ const AddCar = () => {
     "profile.jpg",
     "tesla1.jpg",
     "tesla2.jpg",
-    "tesla3.jpg"
+    "tesla3.jpg",
+    "carhyundai.jpg",
+    "carnissan.png",
+    "gclass.png",
+    "hyundai1.png",
+    "kiapicanto.jpg",
+    "kiapicanto2.png",
+    "nissan1.jpg",
+    "porsche.png",
+    "rangerover.png",
+    "rover1.jpg",
   ];
 
   // Vérifier l'authentification
@@ -62,7 +72,7 @@ const AddCar = () => {
       [name]: type === "checkbox" ? checked : value,
     }));
 
-    // إذا تم تغيير الصورة، حديث المعاينة
+    //if  chnage images in updates car
     if (name === "imageUrl" && value) {
       setImagePreview(`/assets/images/cars/${value}`);
     }
@@ -84,10 +94,6 @@ const AddCar = () => {
       console.log("User:", user.email);
       console.log("Form data:", formData);
 
-      // إنشاء URL الصورة الكامل
-      // const fullImageUrl = formData.imageUrl 
-      //   ? `/assets/images/cars/${formData.imageUrl}` 
-      //   : "";
       const fullImageUrl = formData.imageUrl 
         ? `https://car-admin-frontend.vercel.app/assets/images/cars/${formData.imageUrl}` 
         : "";
@@ -202,15 +208,20 @@ const AddCar = () => {
   };
 
   const brands = [
-    { value: "Toyota", icon: "🚗" },
-    { value: "Honda", icon: "🚙" },
-    { value: "BMW", icon: "🏎️" },
-    { value: "Mercedes", icon: "🚐" },
-    { value: "Audi", icon: "🚕" },
-    { value: "Hyundai", icon: "🚗" },
-    { value: "Kia", icon: "🚙" },
-    { value: "Nissan", icon: "🚗" },
-    { value: "Volkswagen", icon: "🚐" },
+    { value: "Toyota"},
+    { value: "Honda"},
+    { value: "BMW"},
+    { value: "Mercedes"},
+    { value: "Audi" },
+    { value: "Hyundai"},
+    { value: "Kia"},
+    { value: "Nissan" },
+    { value: "Rover"},
+    { value: "Porche"},
+    { value: "Camaro"},
+    { value: "Jeep"},
+    { value: "Ford"},
+    { value: "Ferrari"}
   ];
 
   // Affichage pendant le chargement auth
@@ -463,9 +474,8 @@ const AddCar = () => {
                 required
                 disabled={loading}
               >
-                <option value="gasoline">⛽ Gasoline</option>
+                <option value="petrol">⛽ Petrol</option>  
                 <option value="diesel">🚛 Diesel</option>
-                <option value="hybrid">🔋 Hybrid</option>
                 <option value="electric">⚡ Electric</option>
               </select>
             </div>
