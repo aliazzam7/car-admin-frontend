@@ -372,6 +372,7 @@
 // };
 
 // export default Dashboard;
+
 import React, { useState, useEffect } from 'react';
 import {
   collection,
@@ -398,6 +399,9 @@ import {
   Legend
 } from 'recharts';
 
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+
 const Dashboard = () => {
   const [stats, setStats] = useState({
     totalOrders: 0,
@@ -410,6 +414,25 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [chartData, setChartData] = useState([]);
+const exportChartDataToExcel = () => {
+  const worksheet = XLSX.utils.json_to_sheet(chartData); // chartData هو [{ date: '...', revenue: ... }]
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'ChartData');
+
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+  saveAs(blob, 'RevenueChartData.xlsx');
+};
+
+const exportChartDataToCSV = () => {
+  const worksheet = XLSX.utils.json_to_sheet(chartData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'ChartData');
+
+  const csvBuffer = XLSX.write(workbook, { bookType: 'csv', type: 'array' });
+  const blob = new Blob([csvBuffer], { type: 'text/csv;charset=utf-8;' });
+  saveAs(blob, 'RevenueChartData.csv');
+};
 
   const fetchStats = async () => {
     try {
@@ -591,6 +614,38 @@ const Dashboard = () => {
           <h3>{stats.totalUsers}</h3><p>Total Users</p>
         </div>
       </div>
+      
+{/* Export Buttons */}
+<div style={{ marginBottom: '20px' }}>
+  <button
+    onClick={exportChartDataToExcel}
+    style={{
+      marginRight: '10px',
+      padding: '10px 20px',
+      backgroundColor: '#007bff',
+      color: 'white',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}
+  >
+    Export Chart to Excel
+  </button>
+
+  <button
+    onClick={exportChartDataToCSV}
+    style={{
+      padding: '10px 20px',
+      backgroundColor: '#17a2b8',
+      color: 'white',
+      border: 'none',
+      borderRadius: '5px',
+      cursor: 'pointer'
+    }}
+  >
+    Export Chart to CSV
+  </button>
+</div>
 
       {/* Charts */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginBottom: '40px' }}>
