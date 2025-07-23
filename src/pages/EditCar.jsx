@@ -137,7 +137,9 @@ const EditCar = () => {
 
   // Function to get status styling for preview
   const getStatusConfig = (status) => {
-    switch (status) {
+  const normalizedStatus = status?.toLowerCase();
+  
+  switch (normalizedStatus) {
       case 'available':
         return {
           text: 'Available',
@@ -155,6 +157,12 @@ const EditCar = () => {
           text: 'Under Maintenance',
           backgroundColor: '#ffc107',
           color: '#212529'
+        };
+      case 'reserved':
+        return {
+          text: 'Reserved',
+          backgroundColor: '#00caeeff',
+          color: '#022e5aff'
         };
       default:
         return {
@@ -314,6 +322,7 @@ const EditCar = () => {
                 <option value="available">Available</option>
                 <option value="unavailable">Unavailable</option>
                 <option value="maintenance">Under Maintenance</option>
+                <option value="reserved">Reserved</option>
               </select>
               {/* Status preview */}
               <div style={{ marginTop: '5px' }}>

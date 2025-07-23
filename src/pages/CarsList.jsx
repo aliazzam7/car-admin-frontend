@@ -68,34 +68,44 @@ const CarsList = () => {
   };
 
   // Function to get status display text and styling
-  const getStatusConfig = (status) => {
-    switch (status) {
-      case 'available':
-        return {
-          text: 'Available',
-          backgroundColor: '#28a745',
-          color: 'white'
-        };
-      case 'unavailable':
-        return {
-          text: 'Unavailable',
-          backgroundColor: '#dc3545',
-          color: 'white'
-        };
-      case 'maintenance':
-        return {
-          text: 'Under Maintenance',
-          backgroundColor: '#ffc107',
-          color: '#212529'
-        };
-      default:
-        return {
-          text: 'Unknown',
-          backgroundColor: '#6c757d',
-          color: 'white'
-        };
-    }
-  };
+  // Function to get status display text and styling
+const getStatusConfig = (status) => {
+  // Convert to lowercase for consistent comparison
+  const normalizedStatus = status?.toLowerCase();
+  
+  switch (normalizedStatus) {
+    case 'available':
+      return {
+        text: 'Available',
+        backgroundColor: '#28a745',
+        color: 'white'
+      };
+    case 'unavailable':
+      return {
+        text: 'Unavailable',
+        backgroundColor: '#dc3545',
+        color: 'white'
+      };
+    case 'maintenance':
+      return {
+        text: 'Under Maintenance',
+        backgroundColor: '#ffc107',
+        color: '#212129'
+      };
+    case 'reserved':
+      return {
+        text: 'Reserved',
+        backgroundColor: '#00caeeff',
+        color: '#022e5aff'
+      };
+    default:
+      return {
+        text: 'Unknown',
+        backgroundColor: '#6c757d',
+        color: 'white'
+      };
+  }
+};
 
   if (loading) {
     return (
