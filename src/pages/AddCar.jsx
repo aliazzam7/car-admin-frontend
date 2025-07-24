@@ -135,6 +135,31 @@ const AddCar = () => {
       const docRef = await addDoc(carsColRef, carData);
       console.log("Car added successfully with ID:", docRef.id);
 
+      //code kermal el notification
+      // 🔔 New push notification after successful car addition
+      try {
+        const notificationResponse = await fetch(
+        "https://sendnewcarnotification-5qp5vk3tga-uc.a.run.app",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            carName: formData.carName?.trim(),
+            brand: formData.brand?.trim(),
+          }),
+        }
+    );
+
+        const notificationText = await notificationResponse.text(); // استخدم text() لأنك ترسل نص من السيرفر
+        console.log("✅ Notification sent:", notificationText);
+      } catch (notificationError) {
+        console.error("❌ Failed to send notification:", notificationError);
+      }
+
+
+
       // Si featured, ajout aussi dans "featuredCars"
       if (formData.isFeatured) {
         console.log("Adding to featured cars collection...");
@@ -455,11 +480,11 @@ const AddCar = () => {
                 disabled={loading}
               >
                 <option value="">Select</option>
-                <option value="2">👥 2 passengers</option>
-                <option value="4">👨‍👩‍👧‍👦 4 passengers</option>
-                <option value="5">👨‍👩‍👧‍👦 5 passengers</option>
-                <option value="7">👨‍👩‍👧‍👦 7 passengers</option>
-                <option value="8">👥 8 passengers</option>
+                <option value="2"> 2 passengers</option>
+                <option value="4"> 4 passengers</option>
+                <option value="5"> 5 passengers</option>
+                <option value="7"> 7 passengers</option>
+                <option value="8"> 8 passengers</option>
               </select>
             </div>
           </div>
