@@ -13,6 +13,7 @@ import {
   updateDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useTheme } from '../App'; // استيراد Theme Context
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -25,8 +26,10 @@ const Settings = () => {
     confirmPassword: ''
   });
 
-  const [theme, setTheme] = useState('light');
   const auth = getAuth();
+  
+  // استخدام Theme Context
+  const { theme, toggleTheme, isDark } = useTheme();
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -37,10 +40,6 @@ const Settings = () => {
       }));
       initAdminIfNotExists(user.uid);
       loadProfile(user.uid);
-
-      const savedTheme = localStorage.getItem('adminTheme') || 'light';
-      setTheme(savedTheme);
-      applyTheme(savedTheme);
     }
   }, []);
 
@@ -73,11 +72,6 @@ const Settings = () => {
     }
   };
 
-  const applyTheme = (mode) => {
-    document.documentElement.classList.toggle('dark', mode === 'dark');
-    localStorage.setItem('adminTheme', mode);
-  };
-
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     const user = auth.currentUser;
@@ -108,17 +102,20 @@ const Settings = () => {
         password: profileData.newPassword ? '[ENCRYPTED]' : '[UNCHANGED]'
       });
 
-      alert('Profile updated');
+      alert('Profile updated successfully!');
+      
+      //remetree another password
+      setProfileData(prev => ({
+        ...prev,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      }));
+      
     } catch (error) {
       console.error(error);
       alert(error.message);
     }
-  };
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    applyTheme(newTheme);
   };
 
   return (
@@ -126,64 +123,127 @@ const Settings = () => {
       <h1>Settings</h1>
 
       <div className="tabs">
-        <button onClick={() => setActiveTab('profile')}>Profile</button>
-        <button onClick={() => setActiveTab('theme')}>Theme</button>
+        <button 
+          className={activeTab === 'profile' ? 'active' : ''}
+          onClick={() => setActiveTab('profile')}
+        >
+          👤 Profile
+        </button>
+        <button 
+          className={activeTab === 'theme' ? 'active' : ''}
+          onClick={() => setActiveTab('theme')}
+        >
+          🎨 Theme
+        </button>
+        {/* <button 
+          className={activeTab === 'notifications' ? 'active' : ''}
+          onClick={() => setActiveTab('notifications')}
+        >
+          🔔 Notifications
+        </button> */}
       </div>
 
       {activeTab === 'profile' && (
-        <form onSubmit={handleProfileSubmit} className="profile-form">
-          <label>Name</label>
-          <input
-            type="text"
-            value={profileData.name}
-            onChange={e => setProfileData({ ...profileData, name: e.target.value })}
-          />
+        <div className="tab-content">
+          <h2>👤 Profile Settings</h2>
+          <form onSubmit={handleProfileSubmit} className="profile-form">
+            <div className="form-section">
+              <h3>Personal Information</h3>
+              
+              <label>Full Name</label>
+              <input
+                type="text"
+                value={profileData.name}
+                onChange={e => setProfileData({ ...profileData, name: e.target.value })}
+                placeholder="Enter your full name"
+              />
 
-          <label>Email</label>
-          <input
-            type="email"
-            value={profileData.email}
-            onChange={e => setProfileData({ ...profileData, email: e.target.value })}
-          />
+              <label>Email Address</label>
+              <input
+                type="email"
+                value={profileData.email}
+                onChange={e => setProfileData({ ...profileData, email: e.target.value })}
+                placeholder="Enter your email"
+              />
 
-          <label>Phone</label>
-          <input
-            type="tel"
-            value={profileData.phone}
-            onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
-          />
+              <label>Phone Number</label>
+              <input
+                type="tel"
+                value={profileData.phone}
+                onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
+                placeholder="Enter your phone number"
+              />
+            </div>
 
-          <label>Current Password</label>
-          <input
-            type="password"
-            value={profileData.currentPassword}
-            onChange={e => setProfileData({ ...profileData, currentPassword: e.target.value })}
-          />
+            <div className="form-section">
+              <h3>Password Settings</h3>
+              
+              <label>Current Password</label>
+              <input
+                type="password"
+                value={profileData.currentPassword}
+                onChange={e => setProfileData({ ...profileData, currentPassword: e.target.value })}
+                placeholder="Enter current password"
+              />
 
-          <label>New Password</label>
-          <input
-            type="password"
-            value={profileData.newPassword}
-            onChange={e => setProfileData({ ...profileData, newPassword: e.target.value })}
-          />
+              <label>New Password</label>
+              <input
+                type="password"
+                value={profileData.newPassword}
+                onChange={e => setProfileData({ ...profileData, newPassword: e.target.value })}
+                placeholder="Enter new password (optional)"
+              />
 
-          <label>Confirm New Password</label>
-          <input
-            type="password"
-            value={profileData.confirmPassword}
-            onChange={e => setProfileData({ ...profileData, confirmPassword: e.target.value })}
-          />
+              <label>Confirm New Password</label>
+              <input
+                type="password"
+                value={profileData.confirmPassword}
+                onChange={e => setProfileData({ ...profileData, confirmPassword: e.target.value })}
+                placeholder="Confirm new password"
+              />
+            </div>
 
-          <button type="submit">Save Changes</button>
-        </form>
+            <button type="submit" className="submit-btn">
+              💾 Save Changes
+            </button>
+          </form>
+        </div>
       )}
 
       {activeTab === 'theme' && (
-        <div className="theme-toggle">
-          <p>Current Theme: {theme.toUpperCase()}</p>
-          <button onClick={toggleTheme}>
-            {theme === 'light' ? 'Switch to Dark' : 'Switch to Light'}
-          </button>
+        <div className="tab-content">
+          <h2>🎨 Theme Settings</h2>
+          <div className="theme-toggle">
+            <div className="theme-info">
+              <h3>Current Theme: {theme === 'light' ? '☀️ Light Mode' : '🌙 Dark Mode'}</h3>
+              <p>
+                {theme === 'light' 
+                  ? 'Switch to dark mode for a better experience in low-light environments.' 
+                  : 'Switch to light mode for a bright and clean interface.'
+                }
+              </p>
+            </div>
+            
+            <div className="theme-preview">
+              {/* <div className={`preview-card ${theme}`}>
+                {/* <div className="preview-header">
+                  <h4>Preview</h4>
+                  <span className="preview-icon">{theme === 'light' ? '☀️' : '🌙'}</span>
+                </div> }
+                { <div className="preview-content">
+                  <p>This is how your interface will look</p>
+                  <div className="preview-buttons">
+                    <button className="preview-btn primary">Button</button>
+                    <button className="preview-btn secondary">Button</button>
+                  </div>
+                </div> }
+              </div> */}
+            </div>
+            
+            <button onClick={toggleTheme} className="theme-switch-btn">
+              {theme === 'light' ? '🌙 Switch to Dark Mode' : '☀️ Switch to Light Mode'}
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -191,6 +251,220 @@ const Settings = () => {
 };
 
 export default Settings;
+
+//hayda el code vrai bass men done theme dark/light
+// import React, { useState, useEffect } from 'react';
+// import {
+//   getAuth,
+//   updateEmail,
+//   updatePassword,
+//   reauthenticateWithCredential,
+//   EmailAuthProvider
+// } from 'firebase/auth';
+// import {
+//   doc,
+//   getDoc,
+//   setDoc,
+//   updateDoc
+// } from 'firebase/firestore';
+// import { db } from '../firebase';
+
+// const Settings = () => {
+//   const [activeTab, setActiveTab] = useState('profile');
+//   const [profileData, setProfileData] = useState({
+//     name: '',
+//     email: '',
+//     phone: '',
+//     currentPassword: '',
+//     newPassword: '',
+//     confirmPassword: ''
+//   });
+
+//   const [theme, setTheme] = useState('light');
+//   const auth = getAuth();
+
+//   useEffect(() => {
+//     const user = auth.currentUser;
+//     if (user) {
+//       setProfileData(prev => ({
+//         ...prev,
+//         email: user.email
+//       }));
+//       initAdminIfNotExists(user.uid);
+//       loadProfile(user.uid);
+
+//       const savedTheme = localStorage.getItem('adminTheme') || 'light';
+//       setTheme(savedTheme);
+//       applyTheme(savedTheme);
+//     }
+//   }, []);
+
+//   const initAdminIfNotExists = async (uid) => {
+//     const user = auth.currentUser;
+//     const adminRef = doc(db, 'admins', uid);
+//     const adminSnap = await getDoc(adminRef);
+
+//     if (!adminSnap.exists()) {
+//       await setDoc(adminRef, {
+//         displayName: user.displayName || '',
+//         phoneNumber: user.phoneNumber || '',
+//         email: user.email || '',
+//         password: '[ENCRYPTED]'
+//       });
+//     }
+//   };
+
+//   const loadProfile = async (uid) => {
+//     const adminRef = doc(db, 'admins', uid);
+//     const snap = await getDoc(adminRef);
+//     if (snap.exists()) {
+//       const data = snap.data();
+//       setProfileData(prev => ({
+//         ...prev,
+//         name: data.displayName || '',
+//         phone: data.phoneNumber || '',
+//         email: data.email || ''
+//       }));
+//     }
+//   };
+
+//   const applyTheme = (mode) => {
+//     document.documentElement.classList.toggle('dark', mode === 'dark');
+//     localStorage.setItem('adminTheme', mode);
+//   };
+
+//   const handleProfileSubmit = async (e) => {
+//     e.preventDefault();
+//     const user = auth.currentUser;
+
+//     try {
+//       if (profileData.newPassword) {
+//         if (profileData.newPassword !== profileData.confirmPassword) {
+//           alert('Passwords do not match');
+//           return;
+//         }
+//         const credential = EmailAuthProvider.credential(
+//           user.email,
+//           profileData.currentPassword
+//         );
+//         await reauthenticateWithCredential(user, credential);
+//         await updatePassword(user, profileData.newPassword);
+//       }
+
+//       if (profileData.email !== user.email) {
+//         await updateEmail(user, profileData.email);
+//       }
+
+//       const userRef = doc(db, 'admins', user.uid);
+//       await updateDoc(userRef, {
+//         displayName: profileData.name,
+//         phoneNumber: profileData.phone,
+//         email: profileData.email,
+//         password: profileData.newPassword ? '[ENCRYPTED]' : '[UNCHANGED]'
+//       });
+
+//       alert('Profile updated');
+//     } catch (error) {
+//       console.error(error);
+//       alert(error.message);
+//     }
+//   };
+
+//   const toggleTheme = () => {
+//     const newTheme = theme === 'light' ? 'dark' : 'light';
+//     setTheme(newTheme);
+//     applyTheme(newTheme);
+//   };
+
+//   return (
+//     <div className="settings-page">
+//       <h1>Settings</h1>
+
+//       <div className="tabs">
+//         <button onClick={() => setActiveTab('profile')}>Profile</button>
+//         <button onClick={() => setActiveTab('theme')}>Theme</button>
+//       </div>
+
+//       {activeTab === 'profile' && (
+//         <form onSubmit={handleProfileSubmit} className="profile-form">
+//           <label>Name</label>
+//           <input
+//             type="text"
+//             value={profileData.name}
+//             onChange={e => setProfileData({ ...profileData, name: e.target.value })}
+//           />
+
+//           <label>Email</label>
+//           <input
+//             type="email"
+//             value={profileData.email}
+//             onChange={e => setProfileData({ ...profileData, email: e.target.value })}
+//           />
+
+//           <label>Phone</label>
+//           <input
+//             type="tel"
+//             value={profileData.phone}
+//             onChange={e => setProfileData({ ...profileData, phone: e.target.value })}
+//           />
+
+//           <label>Current Password</label>
+//           <input
+//             type="password"
+//             value={profileData.currentPassword}
+//             onChange={e => setProfileData({ ...profileData, currentPassword: e.target.value })}
+//           />
+
+//           <label>New Password</label>
+//           <input
+//             type="password"
+//             value={profileData.newPassword}
+//             onChange={e => setProfileData({ ...profileData, newPassword: e.target.value })}
+//           />
+
+//           <label>Confirm New Password</label>
+//           <input
+//             type="password"
+//             value={profileData.confirmPassword}
+//             onChange={e => setProfileData({ ...profileData, confirmPassword: e.target.value })}
+//           />
+
+//           <button type="submit">Save Changes</button>
+//         </form>
+//       )}
+
+//       {activeTab === 'theme' && (
+//         <div className="theme-toggle">
+//           <p>Current Theme: {theme.toUpperCase()}</p>
+//           <button onClick={toggleTheme}>
+//             {theme === 'light' ? 'Switch to Dark' : 'Switch to Light'}
+//           </button>
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default Settings;
+
+/******************************************************************************************************** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // // ✅ Step-by-step Admin Settings Page using Firebase with Light/Dark Toggle & Notification Toggle as Buttons + Save Email & Password
