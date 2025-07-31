@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   FaTachometerAlt, FaCar, FaListAlt, FaClipboardList,
-  FaUsers, FaComments, FaCog, FaSignOutAlt 
+  FaUsers, FaComments, FaCog, FaSignOutAlt ,FaChartBar
 } from 'react-icons/fa';
 
 const Sidebar = () => {
@@ -19,7 +19,7 @@ const Sidebar = () => {
     { path: '/cars', label: 'Manage Cars', icon: <FaListAlt /> },
     { path: '/orders', label: 'Orders', icon: <FaClipboardList /> },
     { path: '/users', label: 'Users', icon: <FaUsers /> },
-    // { path: '/messages', label: 'Messages', icon: <FaComments /> },
+    { path: '/reports', label: 'Reports', icon: <FaChartBar /> },
     { path: '/settings', label: 'Settings', icon: <FaCog /> }
   ];
 
@@ -42,28 +42,6 @@ const Sidebar = () => {
             </NavLink>
           </li>
         ))}
-
-       {/* <li>
-  <button
-    onClick={handleLogout}
-    style={{
-      color: '#ff4d4d',
-      background: 'none',
-      border: 'none',
-      display: 'flex',
-      alignItems: 'center',
-      cursor: 'pointer',
-      padding: '10px 20px',
-      width: '100%',
-      fontSize: 'inherit',
-      fontFamily: 'inherit',
-    }}
-  >
-    <span className="menu-icon"><FaSignOutAlt /></span>
-    <span style={{ marginLeft: '10px' }}>Logout</span>
-  </button>
-</li> */}
-
       </ul>
     </div>
   );

@@ -20,6 +20,7 @@ import UsersList from './pages/UsersList';
 import OrdersList from './pages/OrdersList';
 import EditOrder from './pages/EditOrder';
 import Messages from './pages/Messages';
+import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 
@@ -135,6 +136,7 @@ function App() {
                     <Route path="/orders" element={<OrdersList />} />
                     <Route path="/edit-order/:id" element={<EditOrder />} />
                     <Route path="/messages" element={<Messages />} />
+                    <Route path="/reports" element={<Reports />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/login" element={<Navigate to="/dashboard" replace />} />
                     <Route path="*" element={<NotFound />} />
